@@ -3,21 +3,21 @@
 
 // algopy.arc4.ARC4Contract.approval_program() -> uint64:
 main:
-    intcblock 0 1 2 32
-    bytecblock "total_credits_issued" "issuer_verified" "issuer_credits" 0x151f7c75 "admin"
+    intcblock 0 1 2 32 31536000
+    bytecblock 0x151f7c75 "total_credits_issued" "issuer_verified" "issuer_credits" "admin"
     // smart_contracts/credit_issuance/contract.py:17
     // class CreditIssuanceRegistry(ARC4Contract):
     txn OnCompletion
     !
     assert
     txn ApplicationID
-    bz main_create_NoOp@12
-    pushbytess 0x7afdacd3 0xcba161e6 0x14339df0 0x25fd8d69 0x317cc6e2 0x5fd22bea // method "register_issuer(string,string,string)void", method "verify_issuer(address)void", method "mint_carbon_credit(string,string,string,uint64,uint64,string,string)uint64", method "get_credit_asset_id(string)uint64", method "get_issuer_stats(address)(uint64,uint64)", method "get_total_issued()uint64"
+    bz main_create_NoOp@14
+    pushbytess 0x7afdacd3 0xcba161e6 0x89e80e16 0x321bc5b1 0x906386c0 0x25fd8d69 0x317cc6e2 0x5fd22bea // method "register_issuer(string,string,string)void", method "verify_issuer(address)void", method "mint_carbon_credit(string,string,string,uint64,uint64,string,string,uint64)uint64", method "is_credit_expired(string)bool", method "get_credit_expiry(string)uint64", method "get_credit_asset_id(string)uint64", method "get_issuer_stats(address)(uint64,uint64)", method "get_total_issued()uint64"
     txna ApplicationArgs 0
-    match register_issuer verify_issuer mint_carbon_credit get_credit_asset_id get_issuer_stats get_total_issued
+    match register_issuer verify_issuer mint_carbon_credit is_credit_expired get_credit_expiry get_credit_asset_id get_issuer_stats get_total_issued
     err
 
-main_create_NoOp@12:
+main_create_NoOp@14:
     // smart_contracts/credit_issuance/contract.py:17
     // class CreditIssuanceRegistry(ARC4Contract):
     pushbytes 0x9c4a59bd // method "create_registry()void"
@@ -28,17 +28,17 @@ main_create_NoOp@12:
 
 // smart_contracts.credit_issuance.contract.CreditIssuanceRegistry.create_registry[routing]() -> void:
 create_registry:
-    // smart_contracts/credit_issuance/contract.py:36
-    // self.admin.value = Txn.sender
+    // smart_contracts/credit_issuance/contract.py:45
+    // self.admin.value                = Txn.sender
     bytec 4 // "admin"
     txn Sender
     app_global_put
-    // smart_contracts/credit_issuance/contract.py:37
+    // smart_contracts/credit_issuance/contract.py:46
     // self.total_credits_issued.value = UInt64(0)
-    bytec_0 // "total_credits_issued"
+    bytec_1 // "total_credits_issued"
     intc_0 // 0
     app_global_put
-    // smart_contracts/credit_issuance/contract.py:33
+    // smart_contracts/credit_issuance/contract.py:42
     // @arc4.abimethod(allow_actions=["NoOp"], create="require")
     intc_1 // 1
     return
@@ -46,7 +46,7 @@ create_registry:
 
 // smart_contracts.credit_issuance.contract.CreditIssuanceRegistry.register_issuer[routing]() -> void:
 register_issuer:
-    // smart_contracts/credit_issuance/contract.py:40
+    // smart_contracts/credit_issuance/contract.py:53
     // @arc4.abimethod
     txna ApplicationArgs 1
     dup
@@ -78,31 +78,31 @@ register_issuer:
     len
     ==
     assert // invalid number of bytes for arc4.dynamic_array<arc4.uint8>
-    // smart_contracts/credit_issuance/contract.py:52
+    // smart_contracts/credit_issuance/contract.py:61
     // self.issuer_name[Txn.sender]     = name.bytes
     txn Sender
     pushbytes "issuer_name"
     uncover 3
     app_local_put
-    // smart_contracts/credit_issuance/contract.py:53
+    // smart_contracts/credit_issuance/contract.py:62
     // self.issuer_standard[Txn.sender] = verification_standard.bytes
     txn Sender
     pushbytes "issuer_standard"
     uncover 2
     app_local_put
-    // smart_contracts/credit_issuance/contract.py:54
+    // smart_contracts/credit_issuance/contract.py:63
     // self.issuer_verified[Txn.sender] = UInt64(0)
     txn Sender
-    bytec_1 // "issuer_verified"
+    bytec_2 // "issuer_verified"
     intc_0 // 0
     app_local_put
-    // smart_contracts/credit_issuance/contract.py:55
+    // smart_contracts/credit_issuance/contract.py:64
     // self.issuer_credits[Txn.sender]  = UInt64(0)
     txn Sender
-    bytec_2 // "issuer_credits"
+    bytec_3 // "issuer_credits"
     intc_0 // 0
     app_local_put
-    // smart_contracts/credit_issuance/contract.py:40
+    // smart_contracts/credit_issuance/contract.py:53
     // @arc4.abimethod
     intc_1 // 1
     return
@@ -110,7 +110,7 @@ register_issuer:
 
 // smart_contracts.credit_issuance.contract.CreditIssuanceRegistry.verify_issuer[routing]() -> void:
 verify_issuer:
-    // smart_contracts/credit_issuance/contract.py:58
+    // smart_contracts/credit_issuance/contract.py:67
     // @arc4.abimethod
     txna ApplicationArgs 1
     dup
@@ -118,7 +118,7 @@ verify_issuer:
     intc_3 // 32
     ==
     assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>
-    // smart_contracts/credit_issuance/contract.py:61
+    // smart_contracts/credit_issuance/contract.py:70
     // assert Txn.sender == self.admin.value, "Admin only"
     txn Sender
     intc_0 // 0
@@ -127,12 +127,12 @@ verify_issuer:
     assert // check self.admin exists
     ==
     assert // Admin only
-    // smart_contracts/credit_issuance/contract.py:62
+    // smart_contracts/credit_issuance/contract.py:71
     // self.issuer_verified[issuer.native] = UInt64(1)
-    bytec_1 // "issuer_verified"
+    bytec_2 // "issuer_verified"
     intc_1 // 1
     app_local_put
-    // smart_contracts/credit_issuance/contract.py:58
+    // smart_contracts/credit_issuance/contract.py:67
     // @arc4.abimethod
     intc_1 // 1
     return
@@ -140,7 +140,7 @@ verify_issuer:
 
 // smart_contracts.credit_issuance.contract.CreditIssuanceRegistry.mint_carbon_credit[routing]() -> void:
 mint_carbon_credit:
-    // smart_contracts/credit_issuance/contract.py:65
+    // smart_contracts/credit_issuance/contract.py:78
     // @arc4.abimethod
     txna ApplicationArgs 1
     dup
@@ -204,43 +204,95 @@ mint_carbon_credit:
     len
     ==
     assert // invalid number of bytes for arc4.dynamic_array<arc4.uint8>
-    // smart_contracts/credit_issuance/contract.py:83
+    txna ApplicationArgs 8
+    dup
+    len
+    pushint 8
+    ==
+    assert // invalid number of bytes for arc4.uint64
+    // smart_contracts/credit_issuance/contract.py:102
     // assert self.issuer_verified[Txn.sender] == UInt64(1), "Issuer not verified"
     txn Sender
     intc_0 // 0
-    bytec_1 // "issuer_verified"
+    bytec_2 // "issuer_verified"
     app_local_get_ex
     assert // check self.issuer_verified exists for account
     intc_1 // 1
     ==
     assert // Issuer not verified
-    // smart_contracts/credit_issuance/contract.py:84
-    // assert co2_tonnes.native > UInt64(0), "Must represent CO2"
-    uncover 2
+    // smart_contracts/credit_issuance/contract.py:103
+    // assert co2_tonnes.native > UInt64(0),                  "Must represent CO2"
+    uncover 3
     btoi
     dup
     assert // Must represent CO2
-    // smart_contracts/credit_issuance/contract.py:85
-    // assert vintage_year.native >= UInt64(2000), "Invalid vintage year"
-    uncover 2
+    // smart_contracts/credit_issuance/contract.py:104
+    // assert vintage_year.native >= UInt64(2000),            "Invalid vintage year"
+    uncover 3
     btoi
     dup
     pushint 2000
     >=
     assert // Invalid vintage year
-    // smart_contracts/credit_issuance/contract.py:87-89
+    // smart_contracts/credit_issuance/contract.py:105
+    // assert years_valid.native >= UInt64(1),                "Min 1 year validity"
+    uncover 2
+    btoi
+    dup
+    assert // Min 1 year validity
+    // smart_contracts/credit_issuance/contract.py:106
+    // assert years_valid.native <= UInt64(10),               "Max 10 years validity"
+    dup
+    pushint 10
+    <=
+    assert // Max 10 years validity
+    // smart_contracts/credit_issuance/contract.py:108-109
     // # Reject duplicate project IDs
-    // # Box.get returns (value, exists)
     // box_value, box_exists = op.Box.get(project_id.bytes)
-    dig 4
+    dig 5
     box_len
     bury 1
-    // smart_contracts/credit_issuance/contract.py:90
+    // smart_contracts/credit_issuance/contract.py:110
     // assert not box_exists, "Project ID already exists"
     !
     assert // Project ID already exists
-    // smart_contracts/credit_issuance/contract.py:92-105
-    // # Create the NFT on Algorand
+    // smart_contracts/credit_issuance/contract.py:119
+    // years_since_2000  = vintage_year.native - UInt64(2000)
+    dig 1
+    pushint 2000
+    -
+    // smart_contracts/credit_issuance/contract.py:112-116
+    // # Calculate expiry timestamp
+    // # Unix timestamp for Jan 1 of (vintage_year + years_valid)
+    // # 1 year ≈ 31,536,000 seconds
+    // # Base: Jan 1 2000 = 946684800
+    // SECONDS_PER_YEAR = UInt64(31_536_000)
+    intc 4 // 31536000
+    // smart_contracts/credit_issuance/contract.py:120
+    // vintage_timestamp = BASE_2000_UNIX + (years_since_2000 * SECONDS_PER_YEAR)
+    *
+    // smart_contracts/credit_issuance/contract.py:117
+    // BASE_2000_UNIX   = UInt64(946_684_800)
+    pushint 946684800
+    // smart_contracts/credit_issuance/contract.py:120
+    // vintage_timestamp = BASE_2000_UNIX + (years_since_2000 * SECONDS_PER_YEAR)
+    +
+    // smart_contracts/credit_issuance/contract.py:121
+    // expiry_timestamp  = vintage_timestamp + (years_valid.native * SECONDS_PER_YEAR)
+    swap
+    // smart_contracts/credit_issuance/contract.py:112-116
+    // # Calculate expiry timestamp
+    // # Unix timestamp for Jan 1 of (vintage_year + years_valid)
+    // # 1 year ≈ 31,536,000 seconds
+    // # Base: Jan 1 2000 = 946684800
+    // SECONDS_PER_YEAR = UInt64(31_536_000)
+    intc 4 // 31536000
+    // smart_contracts/credit_issuance/contract.py:121
+    // expiry_timestamp  = vintage_timestamp + (years_valid.native * SECONDS_PER_YEAR)
+    *
+    +
+    // smart_contracts/credit_issuance/contract.py:123-136
+    // # Create the NFT
     // asset_txn = itxn.AssetConfig(
     //     total          = 1,
     //     decimals       = 0,
@@ -255,27 +307,27 @@ mint_carbon_credit:
     //     fee            = Global.min_txn_fee,
     // ).submit()
     itxn_begin
-    // smart_contracts/credit_issuance/contract.py:104
+    // smart_contracts/credit_issuance/contract.py:135
     // fee            = Global.min_txn_fee,
     global MinTxnFee
-    // smart_contracts/credit_issuance/contract.py:98
+    // smart_contracts/credit_issuance/contract.py:129
     // url            = b"ipfs://" + ipfs_hash.bytes,
     pushbytes 0x697066733a2f2f
-    uncover 4
+    uncover 5
     concat
-    // smart_contracts/credit_issuance/contract.py:99
+    // smart_contracts/credit_issuance/contract.py:130
     // manager        = Global.current_application_address,
     global CurrentApplicationAddress
-    // smart_contracts/credit_issuance/contract.py:100
+    // smart_contracts/credit_issuance/contract.py:131
     // reserve        = Txn.sender,
     txn Sender
-    // smart_contracts/credit_issuance/contract.py:101
+    // smart_contracts/credit_issuance/contract.py:132
     // freeze         = Global.current_application_address,
     global CurrentApplicationAddress
-    // smart_contracts/credit_issuance/contract.py:102
+    // smart_contracts/credit_issuance/contract.py:133
     // clawback       = Global.current_application_address,
     dup
-    // smart_contracts/credit_issuance/contract.py:103
+    // smart_contracts/credit_issuance/contract.py:134
     // default_frozen = False,
     intc_0 // 0
     itxn_field ConfigAssetDefaultFrozen
@@ -284,28 +336,28 @@ mint_carbon_credit:
     itxn_field ConfigAssetReserve
     itxn_field ConfigAssetManager
     itxn_field ConfigAssetURL
-    uncover 3
+    uncover 4
     itxn_field ConfigAssetName
-    // smart_contracts/credit_issuance/contract.py:96
+    // smart_contracts/credit_issuance/contract.py:127
     // unit_name      = b"CCT",
     pushbytes 0x434354
     itxn_field ConfigAssetUnitName
-    // smart_contracts/credit_issuance/contract.py:95
+    // smart_contracts/credit_issuance/contract.py:126
     // decimals       = 0,
     intc_0 // 0
     itxn_field ConfigAssetDecimals
-    // smart_contracts/credit_issuance/contract.py:94
+    // smart_contracts/credit_issuance/contract.py:125
     // total          = 1,
     intc_1 // 1
     itxn_field ConfigAssetTotal
-    // smart_contracts/credit_issuance/contract.py:92-93
-    // # Create the NFT on Algorand
+    // smart_contracts/credit_issuance/contract.py:123-124
+    // # Create the NFT
     // asset_txn = itxn.AssetConfig(
     pushint 3 // acfg
     itxn_field TypeEnum
     itxn_field Fee
-    // smart_contracts/credit_issuance/contract.py:92-105
-    // # Create the NFT on Algorand
+    // smart_contracts/credit_issuance/contract.py:123-136
+    // # Create the NFT
     // asset_txn = itxn.AssetConfig(
     //     total          = 1,
     //     decimals       = 0,
@@ -321,78 +373,91 @@ mint_carbon_credit:
     // ).submit()
     itxn_submit
     itxn CreatedAssetID
-    // smart_contracts/credit_issuance/contract.py:113
-    // op.itob(asset_id)                 +
+    // smart_contracts/credit_issuance/contract.py:145
+    // op.itob(asset_id)                 +   # offset 0  — 8 bytes
     itob
-    // smart_contracts/credit_issuance/contract.py:114
-    // op.itob(co2_tonnes.native)         +
-    uncover 2
+    // smart_contracts/credit_issuance/contract.py:146
+    // op.itob(co2_tonnes.native)         +   # offset 8  — 8 bytes
+    uncover 3
     itob
-    // smart_contracts/credit_issuance/contract.py:113-114
-    // op.itob(asset_id)                 +
-    // op.itob(co2_tonnes.native)         +
+    // smart_contracts/credit_issuance/contract.py:145-146
+    // op.itob(asset_id)                 +   # offset 0  — 8 bytes
+    // op.itob(co2_tonnes.native)         +   # offset 8  — 8 bytes
     dig 1
     swap
     concat
-    // smart_contracts/credit_issuance/contract.py:115
-    // op.itob(vintage_year.native)       +
-    uncover 2
+    // smart_contracts/credit_issuance/contract.py:147
+    // op.itob(vintage_year.native)       +   # offset 16 — 8 bytes
+    uncover 3
     itob
-    // smart_contracts/credit_issuance/contract.py:113-115
-    // op.itob(asset_id)                 +
-    // op.itob(co2_tonnes.native)         +
-    // op.itob(vintage_year.native)       +
+    // smart_contracts/credit_issuance/contract.py:145-147
+    // op.itob(asset_id)                 +   # offset 0  — 8 bytes
+    // op.itob(co2_tonnes.native)         +   # offset 8  — 8 bytes
+    // op.itob(vintage_year.native)       +   # offset 16 — 8 bytes
     concat
-    // smart_contracts/credit_issuance/contract.py:116
-    // op.itob(Global.latest_timestamp),
+    // smart_contracts/credit_issuance/contract.py:148
+    // op.itob(Global.latest_timestamp)   +   # offset 24 — 8 bytes (mint time)
     global LatestTimestamp
     itob
-    // smart_contracts/credit_issuance/contract.py:113-116
-    // op.itob(asset_id)                 +
-    // op.itob(co2_tonnes.native)         +
-    // op.itob(vintage_year.native)       +
-    // op.itob(Global.latest_timestamp),
+    // smart_contracts/credit_issuance/contract.py:145-148
+    // op.itob(asset_id)                 +   # offset 0  — 8 bytes
+    // op.itob(co2_tonnes.native)         +   # offset 8  — 8 bytes
+    // op.itob(vintage_year.native)       +   # offset 16 — 8 bytes
+    // op.itob(Global.latest_timestamp)   +   # offset 24 — 8 bytes (mint time)
     concat
-    // smart_contracts/credit_issuance/contract.py:109-117
-    // # Store metadata in box storage
-    // # Layout: asset_id(8) | co2_tonnes(8) | vintage_year(8) | timestamp(8)
+    // smart_contracts/credit_issuance/contract.py:149
+    // op.itob(expiry_timestamp),             # offset 32 — 8 bytes (expiry ← NEW)
+    uncover 2
+    itob
+    // smart_contracts/credit_issuance/contract.py:145-149
+    // op.itob(asset_id)                 +   # offset 0  — 8 bytes
+    // op.itob(co2_tonnes.native)         +   # offset 8  — 8 bytes
+    // op.itob(vintage_year.native)       +   # offset 16 — 8 bytes
+    // op.itob(Global.latest_timestamp)   +   # offset 24 — 8 bytes (mint time)
+    // op.itob(expiry_timestamp),             # offset 32 — 8 bytes (expiry ← NEW)
+    concat
+    // smart_contracts/credit_issuance/contract.py:140-150
+    // # Store metadata in box
+    // # Layout: asset_id(8) | co2(8) | vintage(8) | mint_time(8) | expiry(8)
+    // # Total: 40 bytes
     // op.Box.put(
     //     project_id.bytes,
-    //     op.itob(asset_id)                 +
-    //     op.itob(co2_tonnes.native)         +
-    //     op.itob(vintage_year.native)       +
-    //     op.itob(Global.latest_timestamp),
+    //     op.itob(asset_id)                 +   # offset 0  — 8 bytes
+    //     op.itob(co2_tonnes.native)         +   # offset 8  — 8 bytes
+    //     op.itob(vintage_year.native)       +   # offset 16 — 8 bytes
+    //     op.itob(Global.latest_timestamp)   +   # offset 24 — 8 bytes (mint time)
+    //     op.itob(expiry_timestamp),             # offset 32 — 8 bytes (expiry ← NEW)
     // )
     uncover 2
     swap
     box_put
-    // smart_contracts/credit_issuance/contract.py:119
+    // smart_contracts/credit_issuance/contract.py:152
     // self.issuer_credits[Txn.sender]  = self.issuer_credits[Txn.sender] + UInt64(1)
     txn Sender
     intc_0 // 0
-    bytec_2 // "issuer_credits"
+    bytec_3 // "issuer_credits"
     app_local_get_ex
     assert // check self.issuer_credits exists for account
     intc_1 // 1
     +
     txn Sender
-    bytec_2 // "issuer_credits"
+    bytec_3 // "issuer_credits"
     uncover 2
     app_local_put
-    // smart_contracts/credit_issuance/contract.py:120
+    // smart_contracts/credit_issuance/contract.py:153
     // self.total_credits_issued.value  = self.total_credits_issued.value  + UInt64(1)
     intc_0 // 0
-    bytec_0 // "total_credits_issued"
+    bytec_1 // "total_credits_issued"
     app_global_get_ex
     assert // check self.total_credits_issued exists
     intc_1 // 1
     +
-    bytec_0 // "total_credits_issued"
+    bytec_1 // "total_credits_issued"
     swap
     app_global_put
-    // smart_contracts/credit_issuance/contract.py:65
+    // smart_contracts/credit_issuance/contract.py:78
     // @arc4.abimethod
-    bytec_3 // 0x151f7c75
+    bytec_0 // 0x151f7c75
     swap
     concat
     log
@@ -400,9 +465,9 @@ mint_carbon_credit:
     return
 
 
-// smart_contracts.credit_issuance.contract.CreditIssuanceRegistry.get_credit_asset_id[routing]() -> void:
-get_credit_asset_id:
-    // smart_contracts/credit_issuance/contract.py:125
+// smart_contracts.credit_issuance.contract.CreditIssuanceRegistry.is_credit_expired[routing]() -> void:
+is_credit_expired:
+    // smart_contracts/credit_issuance/contract.py:162
     // @arc4.abimethod(readonly=True)
     txna ApplicationArgs 1
     dup
@@ -414,18 +479,94 @@ get_credit_asset_id:
     len
     ==
     assert // invalid number of bytes for arc4.dynamic_array<arc4.uint8>
-    // smart_contracts/credit_issuance/contract.py:128
+    // smart_contracts/credit_issuance/contract.py:171
     // box_value, box_exists = op.Box.get(project_id.bytes)
     box_get
-    // smart_contracts/credit_issuance/contract.py:129
+    // smart_contracts/credit_issuance/contract.py:172
     // assert box_exists, "Project not found"
     assert // Project not found
-    // smart_contracts/credit_issuance/contract.py:130
+    intc_3 // 32
+    // smart_contracts/credit_issuance/contract.py:174
+    // expiry_timestamp = op.btoi(op.extract(box_value, 32, 8))
+    extract_uint64
+    // smart_contracts/credit_issuance/contract.py:176-177
+    // # Compare expiry against current blockchain timestamp
+    // return arc4.Bool(Global.latest_timestamp > expiry_timestamp)
+    global LatestTimestamp
+    <
+    pushbytes 0x00
+    intc_0 // 0
+    uncover 2
+    setbit
+    // smart_contracts/credit_issuance/contract.py:162
+    // @arc4.abimethod(readonly=True)
+    bytec_0 // 0x151f7c75
+    swap
+    concat
+    log
+    intc_1 // 1
+    return
+
+
+// smart_contracts.credit_issuance.contract.CreditIssuanceRegistry.get_credit_expiry[routing]() -> void:
+get_credit_expiry:
+    // smart_contracts/credit_issuance/contract.py:180
+    // @arc4.abimethod(readonly=True)
+    txna ApplicationArgs 1
+    dup
+    intc_0 // 0
+    extract_uint16 // on error: invalid array length header
+    intc_2 // 2
+    +
+    dig 1
+    len
+    ==
+    assert // invalid number of bytes for arc4.dynamic_array<arc4.uint8>
+    // smart_contracts/credit_issuance/contract.py:186
+    // box_value, box_exists = op.Box.get(project_id.bytes)
+    box_get
+    // smart_contracts/credit_issuance/contract.py:187
+    // assert box_exists, "Project not found"
+    assert // Project not found
+    // smart_contracts/credit_issuance/contract.py:188
+    // return arc4.UInt64(op.btoi(op.extract(box_value, 32, 8)))
+    extract 32 8
+    // smart_contracts/credit_issuance/contract.py:180
+    // @arc4.abimethod(readonly=True)
+    bytec_0 // 0x151f7c75
+    swap
+    concat
+    log
+    intc_1 // 1
+    return
+
+
+// smart_contracts.credit_issuance.contract.CreditIssuanceRegistry.get_credit_asset_id[routing]() -> void:
+get_credit_asset_id:
+    // smart_contracts/credit_issuance/contract.py:191
+    // @arc4.abimethod(readonly=True)
+    txna ApplicationArgs 1
+    dup
+    intc_0 // 0
+    extract_uint16 // on error: invalid array length header
+    intc_2 // 2
+    +
+    dig 1
+    len
+    ==
+    assert // invalid number of bytes for arc4.dynamic_array<arc4.uint8>
+    // smart_contracts/credit_issuance/contract.py:194
+    // box_value, box_exists = op.Box.get(project_id.bytes)
+    box_get
+    // smart_contracts/credit_issuance/contract.py:195
+    // assert box_exists, "Project not found"
+    assert // Project not found
+    // smart_contracts/credit_issuance/contract.py:196
     // return arc4.UInt64(op.btoi(op.extract(box_value, 0, 8)))
     extract 0 8
-    // smart_contracts/credit_issuance/contract.py:125
+    // smart_contracts/credit_issuance/contract.py:191
     // @arc4.abimethod(readonly=True)
-    bytec_3 // 0x151f7c75
+    bytec_0 // 0x151f7c75
     swap
     concat
     log
@@ -435,7 +576,7 @@ get_credit_asset_id:
 
 // smart_contracts.credit_issuance.contract.CreditIssuanceRegistry.get_issuer_stats[routing]() -> void:
 get_issuer_stats:
-    // smart_contracts/credit_issuance/contract.py:133
+    // smart_contracts/credit_issuance/contract.py:199
     // @arc4.abimethod(readonly=True)
     txna ApplicationArgs 1
     dup
@@ -443,26 +584,26 @@ get_issuer_stats:
     intc_3 // 32
     ==
     assert // invalid number of bytes for arc4.static_array<arc4.uint8, 32>
-    // smart_contracts/credit_issuance/contract.py:140
+    // smart_contracts/credit_issuance/contract.py:206
     // arc4.UInt64(self.issuer_verified[issuer.native]),
     dup
     intc_0 // 0
-    bytec_1 // "issuer_verified"
+    bytec_2 // "issuer_verified"
     app_local_get_ex
     assert // check self.issuer_verified exists for account
     itob
-    // smart_contracts/credit_issuance/contract.py:141
+    // smart_contracts/credit_issuance/contract.py:207
     // arc4.UInt64(self.issuer_credits[issuer.native]),
     swap
     intc_0 // 0
-    bytec_2 // "issuer_credits"
+    bytec_3 // "issuer_credits"
     app_local_get_ex
     assert // check self.issuer_credits exists for account
     itob
-    // smart_contracts/credit_issuance/contract.py:133
+    // smart_contracts/credit_issuance/contract.py:199
     // @arc4.abimethod(readonly=True)
     concat
-    bytec_3 // 0x151f7c75
+    bytec_0 // 0x151f7c75
     swap
     concat
     log
@@ -472,16 +613,16 @@ get_issuer_stats:
 
 // smart_contracts.credit_issuance.contract.CreditIssuanceRegistry.get_total_issued[routing]() -> void:
 get_total_issued:
-    // smart_contracts/credit_issuance/contract.py:148
+    // smart_contracts/credit_issuance/contract.py:214
     // return arc4.UInt64(self.total_credits_issued.value)
     intc_0 // 0
-    bytec_0 // "total_credits_issued"
+    bytec_1 // "total_credits_issued"
     app_global_get_ex
     assert // check self.total_credits_issued exists
     itob
-    // smart_contracts/credit_issuance/contract.py:145
+    // smart_contracts/credit_issuance/contract.py:211
     // @arc4.abimethod(readonly=True)
-    bytec_3 // 0x151f7c75
+    bytec_0 // 0x151f7c75
     swap
     concat
     log
