@@ -1,8 +1,8 @@
-CreditIssuanceRegistry : 755776818
-CarbonMarketplace      : 755776828
-RetirementRegistry     : 755776834
+CreditIssuanceRegistry : 755788307
+CarbonMarketplace      : 755788317
+RetirementRegistry     : 755788318
 
 Explorer links:
-https://testnet.explorer.perawallet.app/application/755776818/
-https://testnet.explorer.perawallet.app/application/755776828/
-https://testnet.explorer.perawallet.app/application/755776834/
+https://testnet.explorer.perawallet.app/application/755788307/
+https://testnet.explorer.perawallet.app/application/755788317/
+https://testnet.explorer.perawallet.app/application/755788318/
