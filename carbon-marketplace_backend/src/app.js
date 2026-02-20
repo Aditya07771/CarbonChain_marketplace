@@ -1,0 +1,164 @@
+require('dotenv').config();
+
+const express = require('express');
+const cors = require('cors');
+const helmet = require('helmet');
+const compression = require('compression');
+const morgan = require('morgan');
+const rateLimit = require('express-rate-limit');
+
+const sequelize = require('./config/database');
+const logger = require('./utils/logger');
+
+// ⭐ Import models (loads associations once)
+require('./models');
+
+// Routes
+const creditRoutes = require('./routes/credit.routes');
+const marketplaceRoutes = require('./routes/marketplace.routes');
+const retirementRoutes = require('./routes/retirement.routes');
+const explorerRoutes = require('./routes/explorer.routes');
+const userRoutes = require('./routes/user.routes'); // NEW
+const ipfsRoutes = require('./routes/ipfs.routes'); // NEW
+
+const app = express();
+
+app.set("trust proxy", 1);
+
+/* =========================
+   Middleware
+========================= */
+app.use(helmet({
+  crossOriginResourcePolicy: false,
+  crossOriginOpenerPolicy: false,
+}));
+
+app.use(compression());
+
+/* =========================
+   CORS Configuration (ALLOW ALL)
+========================= */
+const corsOptions = {
+  // Setting origin to true allows ALL origins by reflecting the requesting origin
+  origin: true, 
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-wallet-address', 'Accept']
+};
+
+// Apply CORS options to all routes
+app.use(cors(corsOptions));
+
+// ⭐ IMPORTANT: handle preflight using the SAME corsOptions
+app.options('*', cors(corsOptions));
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+app.use(
+  morgan('combined', {
+    stream: { write: msg => logger.info(msg.trim()) }
+  })
+);
+
+/* =========================
+   Rate Limit (applies to API)
+========================= */
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: process.env.API_RATE_LIMIT || 100
+});
+
+app.use('/api', limiter);
+
+/* =========================
+   API Root (prevents Cannot GET /api)
+========================= */
+app.get('/api', (req, res) => {
+  res.json({
+    message: '🌍 Carbon Marketplace API',
+    version: '1.0.0',
+    endpoints: {
+      health: '/api/health',
+      credits: '/api/credits',
+      marketplace: '/api/marketplace',
+      retirements: '/api/retirements',
+      explorer: '/api/explorer',
+      users: '/api/users', // NEW
+      ipfs: '/api/ipfs'    // NEW
+    }
+  });
+});
+
+/* =========================
+   Health Check
+========================= */
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'healthy',
+    network: process.env.ALGORAND_NETWORK,
+    timestamp: new Date().toISOString()
+  });
+});
+
+/* =========================
+   Routes
+========================= */
+app.use('/api/credits', creditRoutes);
+app.use('/api/marketplace', marketplaceRoutes);
+app.use('/api/retirements', retirementRoutes);
+app.use('/api/explorer', explorerRoutes);
+app.use('/api/users', userRoutes); // NEW
+app.use('/api/ipfs', ipfsRoutes);  // NEW
+
+/* =========================
+   Root Redirect (optional)
+========================= */
+app.get('/', (req, res) => {
+  res.redirect('/api');
+});
+
+/* =========================
+   Error Handler
+========================= */
+app.use((err, req, res, next) => {
+  logger.error(err);
+  res.status(err.status || 500).json({
+    success: false,
+    message: err.message || 'Internal server error'
+  });
+});
+
+/* =========================
+   Start Server
+========================= */
+const PORT = process.env.PORT || 3001;
+
+async function start() {
+  try {
+    await sequelize.authenticate();
+    logger.info('✅ Database connected');
+
+    // ONLY alter tables automatically if we are NOT in production
+    const isProduction = process.env.NODE_ENV === 'production';
+    await sequelize.sync({ alter: !isProduction });
+    logger.info('✅ Database synchronized');
+
+    app.listen(PORT, () => {
+      logger.info(`
+╔══════════════════════════════════════════════╗
+║ 🌍 Carbon Marketplace Backend               ║
+║ 🚀 Running on port ${PORT}                   ║
+║ 🔗 Network: ${process.env.ALGORAND_NETWORK}  ║
+╚══════════════════════════════════════════════╝
+      `);
+    });
+  } catch (err) {
+    logger.error('❌ Failed to start server:', err);
+    process.exit(1);
+  }
+}
+
+start();
+
+module.exports = app;
